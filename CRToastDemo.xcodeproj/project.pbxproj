@@ -456,7 +456,7 @@
 				GCC_PREFIX_HEADER = "CRToastDemo/CRToastDemo-Prefix.pch";
 				INFOPLIST_FILE = "CRToastDemo/CRToastDemo-Info.plist";
 				PRODUCT_NAME = CRToastDemo;
-				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE = "199eeccc-c18b-40c5-a829-4fde79fad57c";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -472,7 +472,7 @@
 				GCC_PREFIX_HEADER = "CRToastDemo/CRToastDemo-Prefix.pch";
 				INFOPLIST_FILE = "CRToastDemo/CRToastDemo-Info.plist";
 				PRODUCT_NAME = CRToastDemo;
-				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE = "199eeccc-c18b-40c5-a829-4fde79fad57c";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -487,6 +487,7 @@
 				2D8F2E1918CED50A0077A7F6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		5E2FFB4E18367C01003333F8 /* Build configuration list for PBXProject "CRToastDemo" */ = {
 			isa = XCConfigurationList;
