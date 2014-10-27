@@ -1090,7 +1090,8 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
                                       imageSide);
     //CGFloat x = imageSize.width == 0 ? kCRStatusBarViewNoImageLeftContentInset : CGRectGetMaxX(_imageView.frame);
     CGFloat x = kCRStatusBarViewNoImageLeftContentInset;
-    CGFloat width = CGRectGetWidth(contentFrame)-x-kCRStatusBarViewNoImageRightContentInset;
+    CGFloat rightInset = imageSize.width == 0 ? kCRStatusBarViewNoImageRightContentInset : CGRectGetWidth(_imageView.frame);
+    CGFloat width = CGRectGetWidth(contentFrame)-x-rightInset;
     
     if (self.toast.subtitleText == nil) {
         self.label.frame = CGRectMake(x,
