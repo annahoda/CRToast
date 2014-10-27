@@ -113,16 +113,19 @@ typedef NS_ENUM(NSInteger, CRToastState) {
 //Views and Layout Data
 
 @property (nonatomic, readonly) UIView *notificationView;
-@property (nonatomic, readonly) CGRect notificationViewAnimationFrame1;
-@property (nonatomic, readonly) CGRect notificationViewAnimationFrame2;
+@property (nonatomic, readonly) CGRect notificationViewAnimationFrame;
+//@property (nonatomic, readonly) CGRect notificationViewAnimationFrame1;
+//@property (nonatomic, readonly) CGRect notificationViewAnimationFrame2;
 @property (nonatomic, readonly) UIView *statusBarView;
-@property (nonatomic, readonly) CGRect statusBarViewAnimationFrame1;
-@property (nonatomic, readonly) CGRect statusBarViewAnimationFrame2;
+@property (nonatomic, readonly) CGRect statusBarViewAnimationFrame;
+//@property (nonatomic, readonly) CGRect statusBarViewAnimationFrame1;
+//@property (nonatomic, readonly) CGRect statusBarViewAnimationFrame2;
 @property (nonatomic, retain) UIDynamicAnimator *animator;
 
 //Read Only Convinence Properties Providing Default Values or Values from Options
 
 @property (nonatomic, readonly) CRToastType notificationType;
+@property (nonatomic, readonly) CRToastPosition notificationPosition;
 @property (nonatomic, assign) CGFloat preferredHeight;
 @property (nonatomic, readonly) CRToastPresentationType presentationType;
 @property (nonatomic, readonly) BOOL displayUnderStatusBar;
@@ -178,6 +181,7 @@ typedef NS_ENUM(NSInteger, CRToastState) {
 #pragma mark - Option Constant Definitions
 
 NSString *const kCRToastNotificationTypeKey                 = @"kCRToastNotificationTypeKey";
+NSString *const kCRToastNotificationPositionKey             = @"kCRToastPositionKey";
 NSString *const kCRToastNotificationPreferredHeightKey      = @"kCRToastNotificationPreferredHeightKey";
 NSString *const kCRToastNotificationPresentationTypeKey     = @"kCRToastNotificationPresentationTypeKey";
 
@@ -225,6 +229,7 @@ NSString *const kCRToastAutorotateKey                       = @"kCRToastAutorota
 static CRToastType                  kCRNotificationTypeDefault              = CRToastTypeStatusBar;
 static CGFloat                      kCRNotificationPreferredHeightDefault   = 0;
 static CRToastPresentationType      kCRNotificationPresentationTypeDefault  = CRToastPresentationTypePush;
+static CRToastPosition              kCRNotificationPositionDefault          = CRToastPositionTop;
 static BOOL                         kCRDisplayUnderStatusBarDefault         = NO;
 
 static CRToastAnimationType         kCRAnimationTypeDefaultIn               = CRToastAnimationTypeLinear;
@@ -338,20 +343,29 @@ static CGSize CRNotificationViewSize(CRToastType notificationType, CGFloat prefe
     return CGSizeMake(CRGetStatusBarWidth(), CRGetNotificationViewHeight(notificationType, preferredNotificationHeight));
 }
 
-static CGRect CRNotificationViewFrame(CRToastType type, CRToastAnimationDirection direction, CGFloat preferredNotificationHeight) {
-    return CGRectMake(direction == CRToastAnimationDirectionLeft ? -CRGetStatusBarWidth() : direction == CRToastAnimationDirectionRight ? CRGetStatusBarWidth() : 0,
-                      direction == CRToastAnimationDirectionTop ? -CRGetNotificationViewHeight(type, preferredNotificationHeight) : direction == CRToastAnimationDirectionBottom ? CRGetNotificationViewHeight(type, preferredNotificationHeight) : 0,
-                      CRGetStatusBarWidth(),
-                      CRGetNotificationViewHeight(type, preferredNotificationHeight));
+//static CGRect CRNotificationViewFrame(CRToastType type, CRToastAnimationDirection direction, CGFloat preferredNotificationHeight) {
+//    return CGRectMake(direction == CRToastAnimationDirectionLeft ? -CRGetStatusBarWidth() : direction == CRToastAnimationDirectionRight ? CRGetStatusBarWidth() : 0,
+//                      direction == CRToastAnimationDirectionTop ? -CRGetNotificationViewHeight(type, preferredNotificationHeight) : direction == CRToastAnimationDirectionBottom ? CRGetNotificationViewHeight(type, preferredNotificationHeight) : 0,
+//                      CRGetStatusBarWidth(),
+//                      CRGetNotificationViewHeight(type, preferredNotificationHeight));
+//}
+
+static CGRect CRNotificationViewFrame(CRToastType type, UIView *notificationView, CRToastAnimationDirection direction, CGFloat preferredNotificationHeight)
+{
+    CGRect test = CGRectMake(direction == CRToastAnimationDirectionLeft ? notificationView.frame.origin.x - notificationView.frame.size.width : direction == CRToastAnimationDirectionRight ? notificationView.frame.origin.x + notificationView.frame.size.width : notificationView.frame.origin.x, direction == CRToastAnimationDirectionTop ? notificationView.frame.origin.y - CRGetNotificationViewHeight(type, preferredNotificationHeight) : direction == CRToastAnimationDirectionBottom ? notificationView.frame.origin.y + CRGetNotificationViewHeight(type, preferredNotificationHeight) : notificationView.frame.origin.y, notificationView.frame.size.width, CRGetNotificationViewHeight(type, preferredNotificationHeight));
+    
+    return test;
 }
 
-static CGRect CRStatusBarViewFrame(CRToastType type, CRToastAnimationDirection direction, CGFloat preferredNotificationHeight) {
+static CGRect CRStatusBarViewFrame(CRToastType type, UIView *notificationView, CRToastAnimationDirection direction, CGFloat preferredNotificationHeight)
+{
     return CRNotificationViewFrame(type,
-                                   direction == CRToastAnimationDirectionTop ? CRToastAnimationDirectionBottom :
-                                   direction == CRToastAnimationDirectionBottom ? CRToastAnimationDirectionTop :
-                                   direction == CRToastAnimationDirectionLeft ? CRToastAnimationDirectionRight :
-                                   CRToastAnimationDirectionLeft,
-                                   preferredNotificationHeight);
+                                              notificationView,
+                                              direction == CRToastAnimationDirectionTop ? CRToastAnimationDirectionBottom :
+                                              direction == CRToastAnimationDirectionBottom ? CRToastAnimationDirectionTop :
+                                              direction == CRToastAnimationDirectionLeft ? CRToastAnimationDirectionRight :
+                                              CRToastAnimationDirectionLeft,
+                                              preferredNotificationHeight);
 }
 
 static UIView *CRStatusBarSnapShotView(BOOL underStatusBar) {
@@ -463,7 +477,8 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
         kCRInteractionResponders = @[];
         
         kCRToastKeyClassMap = @{kCRToastNotificationTypeKey                 : NSStringFromClass([@(kCRNotificationTypeDefault) class]),
-                                kCRToastNotificationPreferredHeightKey         : NSStringFromClass([@(kCRNotificationPreferredHeightDefault) class]),
+                                kCRToastNotificationPositionKey             : NSStringFromClass([@(kCRNotificationPositionDefault) class]),
+                                kCRToastNotificationPreferredHeightKey      : NSStringFromClass([@(kCRNotificationPreferredHeightDefault) class]),
                                 kCRToastNotificationPresentationTypeKey     : NSStringFromClass([@(kCRNotificationPresentationTypeDefault) class]),
                                 kCRToastUnderStatusBarKey                   : NSStringFromClass([@(kCRDisplayUnderStatusBarDefault) class]),
                                 kCRToastAnimationInTypeKey                  : NSStringFromClass([@(kCRAnimationTypeDefaultIn) class]),
@@ -511,6 +526,8 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
 + (void)setDefaultOptions:(NSDictionary*)defaultOptions {
     //TODO Validate Types of Default Options
     if (defaultOptions[kCRToastNotificationTypeKey])                kCRNotificationTypeDefault              = [defaultOptions[kCRToastNotificationTypeKey] integerValue];
+    if (defaultOptions[kCRToastNotificationPositionKey])            kCRNotificationPositionDefault
+        = [defaultOptions[kCRToastNotificationPositionKey] integerValue];
     if (defaultOptions[kCRToastNotificationPreferredHeightKey])        kCRNotificationPreferredHeightDefault   = [defaultOptions[kCRToastNotificationPreferredHeightKey] floatValue];
     if (defaultOptions[kCRToastNotificationPresentationTypeKey])    kCRNotificationPresentationTypeDefault  = [defaultOptions[kCRToastNotificationPresentationTypeKey] integerValue];
     
@@ -563,27 +580,28 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
     return notificationView;
 }
 
-- (CGRect)notificationViewAnimationFrame1 {
-    return CRNotificationViewFrame(self.notificationType, self.inAnimationDirection, self.preferredHeight);
-}
+//- (CGRect)notificationViewAnimationFrame1 {
+//    return CRNotificationViewFrame(self.notificationType, self.inAnimationDirection, self.preferredHeight);
+//}
 
-- (CGRect)notificationViewAnimationFrame2 {
-    return CRNotificationViewFrame(self.notificationType, self.outAnimationDirection, self.preferredHeight);
+//- (CGRect)notificationViewAnimationFrame2 {
+//    return CRNotificationViewFrame(self.notificationType, self.outAnimationDirection, self.preferredHeight);
+//}
+
+- (CGRect) notificationViewAnimationFrame {
+    return CRNotificationViewFrame(self.notificationType, self.notificationView, self.inAnimationDirection, self.preferredHeight);
 }
 
 - (UIView*)statusBarView {
-    UIView *statusBarView = [[UIView alloc] initWithFrame:self.statusBarViewAnimationFrame1];
+    //UIView *statusBarView = [[UIView alloc] initWithFrame:self.statusBarViewAnimationFrame1];
+    UIView *statusBarView = [[UIView alloc] initWithFrame:self.statusBarViewAnimationFrame];
     [statusBarView addSubview:CRStatusBarSnapShotView(self.displayUnderStatusBar)];
     statusBarView.clipsToBounds = YES;
     return statusBarView;
 }
 
-- (CGRect)statusBarViewAnimationFrame1 {
-    return CRStatusBarViewFrame(self.notificationType, self.inAnimationDirection, self.preferredHeight);
-}
-
-- (CGRect)statusBarViewAnimationFrame2 {
-    return CRStatusBarViewFrame(self.notificationType, self.outAnimationDirection, self.preferredHeight);
+- (CGRect) statusBarViewAnimationFrame {
+    return CRStatusBarViewFrame(self.notificationType, self.notificationView, self.inAnimationDirection, self.preferredHeight);
 }
 
 #pragma mark - Gesture Recognizer Actions
@@ -634,6 +652,12 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
     return _options[kCRToastNotificationTypeKey] ?
     [self.options[kCRToastNotificationTypeKey] integerValue] :
     kCRNotificationTypeDefault;
+}
+
+- (CRToastPosition)notificationPosition {
+    return _options[kCRToastNotificationPositionKey] ?
+    [self.options[kCRToastNotificationPositionKey] integerValue] :
+    kCRNotificationPositionDefault;
 }
 
 - (CGFloat)preferredHeight {
@@ -828,18 +852,18 @@ static CGFloat kCRCollisionTweak = 0.5;
     switch (self.inAnimationDirection) {
         case CRToastAnimationDirectionTop:
             x = 0;
-            y = (factor*CGRectGetHeight(self.notificationViewAnimationFrame1))+(push ? -4*kCRCollisionTweak : kCRCollisionTweak);
+            y = (factor*CGRectGetHeight(self.notificationViewAnimationFrame))+(push ? -4*kCRCollisionTweak : kCRCollisionTweak);
             break;
         case CRToastAnimationDirectionLeft:
-            x = (factor*CGRectGetWidth(self.notificationViewAnimationFrame1))+(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);
-            y = CGRectGetHeight(self.notificationViewAnimationFrame1);
+            x = (factor*CGRectGetWidth(self.notificationViewAnimationFrame))+(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);
+            y = CGRectGetHeight(self.notificationViewAnimationFrame);
             break;
         case CRToastAnimationDirectionBottom:
-            x = CGRectGetWidth(self.notificationViewAnimationFrame1);
-            y = -((factor-1)*CGRectGetHeight(self.notificationViewAnimationFrame1))-(push ? -5*kCRCollisionTweak : kCRCollisionTweak);;
+            x = CGRectGetWidth(self.notificationViewAnimationFrame);
+            y = -((factor-1)*CGRectGetHeight(self.notificationViewAnimationFrame))-(push ? -5*kCRCollisionTweak : kCRCollisionTweak);;
             break;
         case CRToastAnimationDirectionRight:
-            x = -((factor-1)*CGRectGetWidth(self.notificationViewAnimationFrame1))-(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);;
+            x = -((factor-1)*CGRectGetWidth(self.notificationViewAnimationFrame))-(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);;
             y = 0;
             break;
     }
@@ -853,20 +877,20 @@ static CGFloat kCRCollisionTweak = 0.5;
     BOOL push = self.presentationType == CRToastPresentationTypePush;
     switch (self.inAnimationDirection) {
         case CRToastAnimationDirectionTop:
-            x = CGRectGetWidth(self.notificationViewAnimationFrame1);
-            y = (factor*CGRectGetHeight(self.notificationViewAnimationFrame1))+(push ? -4*kCRCollisionTweak : kCRCollisionTweak);
+            x = CGRectGetWidth(self.notificationViewAnimationFrame);
+            y = (factor*CGRectGetHeight(self.notificationViewAnimationFrame))+(push ? -4*kCRCollisionTweak : kCRCollisionTweak);
             break;
         case CRToastAnimationDirectionLeft:
-            x = (factor*CGRectGetWidth(self.notificationViewAnimationFrame1))+(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);
+            x = (factor*CGRectGetWidth(self.notificationViewAnimationFrame))+(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);
             y = 0;
             break;
         case CRToastAnimationDirectionBottom:
             x = 0;
-            y = -((factor-1)*CGRectGetHeight(self.notificationViewAnimationFrame1))-(push ? -5*kCRCollisionTweak : kCRCollisionTweak);
+            y = -((factor-1)*CGRectGetHeight(self.notificationViewAnimationFrame))-(push ? -5*kCRCollisionTweak : kCRCollisionTweak);
             break;
         case CRToastAnimationDirectionRight:
-            x = -((factor-1)*CGRectGetWidth(self.notificationViewAnimationFrame1))-(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);
-            y = CGRectGetHeight(self.notificationViewAnimationFrame1);
+            x = -((factor-1)*CGRectGetWidth(self.notificationViewAnimationFrame))-(push ? -5*kCRCollisionTweak : 2*kCRCollisionTweak);
+            y = CGRectGetHeight(self.notificationViewAnimationFrame);
             break;
     }
     return (CGPoint){x, y};
@@ -877,20 +901,20 @@ static CGFloat kCRCollisionTweak = 0.5;
     CGFloat y;
     switch (self.outAnimationDirection) {
         case CRToastAnimationDirectionTop:
-            x = CGRectGetWidth(self.notificationViewAnimationFrame1);
-            y = -CGRectGetHeight(self.notificationViewAnimationFrame1)-kCRCollisionTweak;
+            x = CGRectGetWidth(self.notificationViewAnimationFrame);
+            y = -CGRectGetHeight(self.notificationViewAnimationFrame)-kCRCollisionTweak;
             break;
         case CRToastAnimationDirectionLeft:
-            x = -CGRectGetWidth(self.notificationViewAnimationFrame1)-kCRCollisionTweak;
+            x = -CGRectGetWidth(self.notificationViewAnimationFrame)-kCRCollisionTweak;
             y = 0;
             break;
         case CRToastAnimationDirectionBottom:
             x = 0;
-            y = 2*CGRectGetHeight(self.notificationViewAnimationFrame1)+kCRCollisionTweak;
+            y = 2*CGRectGetHeight(self.notificationViewAnimationFrame)+kCRCollisionTweak;
             break;
         case CRToastAnimationDirectionRight:
-            x = 2*CGRectGetWidth(self.notificationViewAnimationFrame1)+2*kCRCollisionTweak;
-            y = CGRectGetHeight(self.notificationViewAnimationFrame1);
+            x = 2*CGRectGetWidth(self.notificationViewAnimationFrame)+2*kCRCollisionTweak;
+            y = CGRectGetHeight(self.notificationViewAnimationFrame);
             break;
     }
     return (CGPoint){x, y};
@@ -902,18 +926,18 @@ static CGFloat kCRCollisionTweak = 0.5;
     switch (self.outAnimationDirection) {
         case CRToastAnimationDirectionTop:
             x = 0;
-            y = -CGRectGetHeight(self.notificationViewAnimationFrame1)-kCRCollisionTweak;
+            y = -CGRectGetHeight(self.notificationViewAnimationFrame)-kCRCollisionTweak;
             break;
         case CRToastAnimationDirectionLeft:
-            x = -CGRectGetWidth(self.notificationViewAnimationFrame1)-kCRCollisionTweak;
-            y = CGRectGetHeight(self.notificationViewAnimationFrame1);
+            x = -CGRectGetWidth(self.notificationViewAnimationFrame)-kCRCollisionTweak;
+            y = CGRectGetHeight(self.notificationViewAnimationFrame);
             break;
         case CRToastAnimationDirectionBottom:
-            x = CGRectGetWidth(self.notificationViewAnimationFrame1);
-            y = 2*CGRectGetHeight(self.notificationViewAnimationFrame1)+kCRCollisionTweak;
+            x = CGRectGetWidth(self.notificationViewAnimationFrame);
+            y = 2*CGRectGetHeight(self.notificationViewAnimationFrame)+kCRCollisionTweak;
             break;
         case CRToastAnimationDirectionRight:
-            x = 2*CGRectGetWidth(self.notificationViewAnimationFrame1)+2*kCRCollisionTweak;
+            x = 2*CGRectGetWidth(self.notificationViewAnimationFrame)+2*kCRCollisionTweak;
             y = 0;
             break;
     }
@@ -1010,7 +1034,8 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
     self = [super initWithFrame:frame];
     if (self) {
         self.userInteractionEnabled = YES;
-        self.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+        //self.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+        self.translatesAutoresizingMaskIntoConstraints = NO;
         
         UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectZero];
         imageView.userInteractionEnabled = NO;
@@ -1029,6 +1054,10 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
         self.subtitleLabel = subtitleLabel;
         
         self.isAccessibilityElement = YES;
+        
+        NSArray *constraint_V = [NSLayoutConstraint constraintsWithVisualFormat:[NSString stringWithFormat:@"V:[self(%f)]", self.frame.size.height] options:0 metrics:nil views:@{@"self": self}];
+        [self addConstraints:constraint_V];
+        
     }
     return self;
 }
@@ -1107,6 +1136,16 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
 
 @end
 
+#pragma mark - CRToastContainerView
+
+@interface CRToastContainerView : UIView
+
+@end
+
+@implementation CRToastContainerView
+
+@end
+
 #pragma mark - CRToastWindow
 
 @interface CRToastWindow : UIWindow
@@ -1117,22 +1156,19 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
 
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent*)event {
     for (UIView *subview in self.subviews) {
-        if ([subview hitTest:[self convertPoint:point toView:subview] withEvent:event] != nil) {
-            return YES;
+        CGPoint pnt = [self convertPoint:point toView:subview];
+        if ([subview hitTest:pnt withEvent:event] != nil && [subview isKindOfClass:[CRToastContainerView class]]) {
+            for (UIView *subViewInContainer in subview.subviews)
+            {
+                if (CGRectContainsPoint(subViewInContainer.frame, pnt) && [subViewInContainer isKindOfClass:[CRToastView class]])
+                {
+                    return YES;
+                }
+            }
         }
     }
     return NO;
 }
-
-@end
-
-#pragma mark - CRToastContainerView
-
-@interface CRToastContainerView : UIView
-
-@end
-
-@implementation CRToastContainerView
 
 @end
 
@@ -1181,32 +1217,42 @@ UIStatusBarStyle statusBarStyle;
     self.view = [[CRToastContainerView alloc] init];
 }
 
-- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
-    [super willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
-    
-    if (self.toastView) {
-        CGSize notificationSize = CRNotificationViewSizeForOrientation(self.notification.notificationType, self.notification.preferredHeight, toInterfaceOrientation);
-        //self.toastView.frame = CGRectMake(0, 0, notificationSize.width, notificationSize.height);
-        self.view.frame = CGRectMake(0, 0, notificationSize.width, notificationSize.height);
-        UIInterfaceOrientation statusBarOrientation = CRGetDeviceOrientation();
-        switch (statusBarOrientation) {
-            case UIInterfaceOrientationLandscapeLeft:
-                self.view.frame = CGRectMake(CGRectGetWidth([UIScreen mainScreen].bounds) - notificationSize.height, 0, notificationSize.height, notificationSize.width);
-                break;
-            case UIInterfaceOrientationLandscapeRight:
-                self.view.frame = CGRectMake(0, 0, notificationSize.height, notificationSize.width);
-                break;
-            case UIInterfaceOrientationPortrait:
-                self.view.frame = CGRectMake(0, CGRectGetHeight([UIScreen mainScreen].bounds) - notificationSize.height, notificationSize.width, notificationSize.height);
-                break;
-            case UIInterfaceOrientationPortraitUpsideDown:
-                self.view.frame = CGRectMake(0, 0, notificationSize.width, notificationSize.height);
-                break;
-            default:
-                break;
-        }
-    }
-}
+//- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
+//    [super willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
+//    
+//    if (self.toastView) {
+//        CGSize notificationSize = CRNotificationViewSizeForOrientation(self.notification.notificationType, self.notification.preferredHeight, toInterfaceOrientation);
+//        self.toastView.frame = CGRectMake(0, CGRectGetHeight([UIScreen mainScreen].bounds) - notificationSize.height, notificationSize.width, notificationSize.height);
+//        
+//        UIInterfaceOrientation statusBarOrientation = CRGetDeviceOrientation();
+//        if (UIInterfaceOrientationIsLandscape(statusBarOrientation))
+//        {
+//            self.toastView.frame = CGRectMake(0, CGRectGetWidth([UIScreen mainScreen].bounds) - notificationSize.height, notificationSize.width, notificationSize.height);
+//        }
+//        else
+//        {
+//            self.toastView.frame = CGRectMake(0, CGRectGetHeight([UIScreen mainScreen].bounds) - notificationSize.height, notificationSize.width, notificationSize.height);
+//        }
+//
+////        UIInterfaceOrientation statusBarOrientation = CRGetDeviceOrientation();
+////        switch (statusBarOrientation) {
+////            case UIInterfaceOrientationLandscapeLeft:
+////                self.view.frame = CGRectMake(CGRectGetWidth([UIScreen mainScreen].bounds) - notificationSize.height, 0, notificationSize.height, notificationSize.width);
+////                break;
+////            case UIInterfaceOrientationLandscapeRight:
+////                self.view.frame = CGRectMake(0, 0, notificationSize.height, notificationSize.width);
+////                break;
+////            case UIInterfaceOrientationPortrait:
+////                self.view.frame = CGRectMake(0, CGRectGetHeight([UIScreen mainScreen].bounds) - notificationSize.height, notificationSize.width, notificationSize.height);
+////                break;
+////            case UIInterfaceOrientationPortraitUpsideDown:
+////                self.view.frame = CGRectMake(0, 0, notificationSize.width, notificationSize.height);
+////                break;
+////            default:
+////                break;
+////        }
+//    }
+//}
 
 @end
 
@@ -1312,8 +1358,8 @@ CRToastAnimationStepBlock CRToastOutwardAnimationsBlock(CRToastManager *weakSelf
     return ^{
         weakSelf.notification.state = CRToastStateExiting;
         [weakSelf.notification.animator removeAllBehaviors];
-        weakSelf.notificationView.frame = weakSelf.notification.notificationViewAnimationFrame2;
-        NSLog(@"%f", weakSelf.notificationView.frame.origin.y);
+        //weakSelf.notificationView.frame = weakSelf.notification.notificationViewAnimationFrame2;
+        weakSelf.notificationView.frame = CRNotificationViewFrame(weakSelf.notification.notificationType, weakSelf.notificationView, weakSelf.notification.outAnimationDirection, weakSelf.notification.preferredHeight);
         weakSelf.statusBarView.frame = weakSelf.notificationWindow.rootViewController.view.bounds;
     };
 }
@@ -1322,7 +1368,7 @@ CRToastAnimationStepBlock CRToastOutwardAnimationsSetupBlock(CRToastManager *wea
     return ^{
         CRToast *notification = weakSelf.notification;
         weakSelf.notification.state = CRToastStateExiting;
-        weakSelf.statusBarView.frame = notification.statusBarViewAnimationFrame2;
+        weakSelf.statusBarView.frame = notification.statusBarViewAnimationFrame;
         [weakSelf.notificationWindow.rootViewController.view.gestureRecognizers enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
             [(UIGestureRecognizer*)obj setEnabled:NO];
         }];
@@ -1404,51 +1450,28 @@ CRToastAnimationStepBlock CRToastOutwardAnimationsSetupBlock(CRToastManager *wea
     _notificationWindow.hidden = NO;
     CGSize notificationSize = CRNotificationViewSize(notification.notificationType, notification.preferredHeight);
     
-//    CGRect containerFrame = CGRectMake(0, 0, notificationSize.width, notificationSize.height);
-//	
-//	if (!kCRFrameAutoAdjustedForOrientation) {
-//		UIInterfaceOrientation statusBarOrientation = CRGetDeviceOrientation();
-//		switch (statusBarOrientation) {
-//			case UIInterfaceOrientationLandscapeLeft: {
-//				containerFrame = CGRectMake(0, 0, notificationSize.height, notificationSize.width);
-//				break;
-//			}
-//			case UIInterfaceOrientationLandscapeRight: {
-//				containerFrame = CGRectMake(CGRectGetWidth([[UIScreen mainScreen] bounds])-notificationSize.height, 0, notificationSize.height, notificationSize.width);
-//				break;
-//			}
-//			case UIInterfaceOrientationPortraitUpsideDown: {
-//				containerFrame = CGRectMake(0, CGRectGetHeight([[UIScreen mainScreen] bounds])-notificationSize.height, notificationSize.width, notificationSize.height);
-//				break;
-//			}
-//			default: {
-//				break;
-//			}
-//		}
-//	}
+    CGRect containerFrame = notification.notificationPosition == CRToastPositionTop ? CGRectMake(0, 0, notificationSize.width, notificationSize.height) : CGRectMake(0, CGRectGetHeight([[UIScreen mainScreen] bounds])-notificationSize.height, notificationSize.width, notificationSize.height);
     
-    CGRect containerFrame = CGRectMake(0, CGRectGetHeight([[UIScreen mainScreen] bounds])-notificationSize.height, notificationSize.width, notificationSize.height);
-	
-	if (!kCRFrameAutoAdjustedForOrientation) {
-		UIInterfaceOrientation statusBarOrientation = CRGetDeviceOrientation();
-		switch (statusBarOrientation) {
-			case UIInterfaceOrientationLandscapeLeft: {
-				containerFrame = CGRectMake(CGRectGetWidth([[UIScreen mainScreen] bounds])-notificationSize.height, 0, notificationSize.height, notificationSize.width);
-				break;
-			}
-			case UIInterfaceOrientationLandscapeRight: {
-				containerFrame = CGRectMake(0, 0, notificationSize.height, notificationSize.width);
-				break;
-			}
-			case UIInterfaceOrientationPortraitUpsideDown: {
-				containerFrame = CGRectMake(0, 0, notificationSize.width, notificationSize.height);
-				break;
-			}
-			default: {
-				break;
-			}
-		}
-	}
+    if (!kCRFrameAutoAdjustedForOrientation) {
+        UIInterfaceOrientation statusBarOrientation = CRGetDeviceOrientation();
+        switch (statusBarOrientation) {
+            case UIInterfaceOrientationLandscapeLeft: {
+                containerFrame = notification.notificationPosition == CRToastPositionTop ? CGRectMake(0, 0, notificationSize.height, notificationSize.width) : CGRectMake(CGRectGetWidth([[UIScreen mainScreen] bounds])-notificationSize.height, 0, notificationSize.height, notificationSize.width);
+                break;
+            }
+            case UIInterfaceOrientationLandscapeRight: {
+                containerFrame = notification.notificationPosition == CRToastPositionTop ? CGRectMake(CGRectGetWidth([[UIScreen mainScreen] bounds])-notificationSize.height, 0, notificationSize.height, notificationSize.width) : CGRectMake(0, 0, notificationSize.height, notificationSize.width);
+                break;
+            }
+            case UIInterfaceOrientationPortraitUpsideDown: {
+                containerFrame = notification.notificationPosition == CRToastPositionTop ? CGRectMake(0, CGRectGetHeight([[UIScreen mainScreen] bounds])-notificationSize.height, notificationSize.width, notificationSize.height) : CGRectMake(0, 0, notificationSize.width, notificationSize.height);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
     
     CRToastViewController *rootViewController = (CRToastViewController*)_notificationWindow.rootViewController;
     [rootViewController statusBarStyle:notification.statusBarStyle];
@@ -1465,8 +1488,24 @@ CRToastAnimationStepBlock CRToastOutwardAnimationsSetupBlock(CRToastManager *wea
     statusBarView.hidden = notification.presentationType == CRToastPresentationTypeCover;
     
     UIView *notificationView = notification.notificationView;
-    notificationView.frame = notification.notificationViewAnimationFrame1;
+    notificationView.frame = notification.notificationViewAnimationFrame;
     [_notificationWindow.rootViewController.view addSubview:notificationView];
+    
+    NSDictionary *notificationViewDict = @{@"notificationView": notificationView};
+    NSArray *constraint_POS_H_Left = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[notificationView]"
+                                                                        options:0
+                                                                        metrics:nil
+                                                                          views:notificationViewDict];
+    NSArray *constraint_POS_H_Right = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[notificationView]-0-|"
+                                                                             options:0
+                                                                             metrics:nil
+                                                                               views:notificationViewDict];
+    NSArray *constraint_POS_V_Bottom = [NSLayoutConstraint constraintsWithVisualFormat:notification.notificationPosition == CRToastPositionTop ? @"V:|-0-[notificationView]" : @"V:[notificationView]-0-|" options:0 metrics:nil views:notificationViewDict];
+    
+    [notificationView.superview addConstraints:constraint_POS_H_Left];
+    [notificationView.superview addConstraints:constraint_POS_H_Right];
+    [notificationView.superview addConstraints:constraint_POS_V_Bottom];
+    
     self.notificationView = notificationView;
     rootViewController.toastView = notificationView;
     self.statusBarView = statusBarView;
@@ -1481,7 +1520,7 @@ CRToastAnimationStepBlock CRToastOutwardAnimationsSetupBlock(CRToastManager *wea
     __weak __block typeof(self) weakSelf = self;
     CRToastAnimationStepBlock inwardAnimationsBlock = ^void(void) {
         weakSelf.notificationView.frame = weakSelf.notificationWindow.rootViewController.view.bounds;
-        weakSelf.statusBarView.frame = notification.statusBarViewAnimationFrame1;
+        weakSelf.statusBarView.frame = notification.statusBarViewAnimationFrame;
     };
     
     NSString *notificationUUIDString = notification.uuid.UUIDString;

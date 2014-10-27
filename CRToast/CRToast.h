@@ -105,6 +105,15 @@ typedef NS_ENUM(NSInteger, CRToastAnimationType) {
     CRToastAnimationTypeGravity
 };
 
+/**
+ `CRToastPositionType` defines the initial position for the notification presentation.
+ */
+
+typedef NS_ENUM(NSInteger, CRToastPosition) {
+    CRToastPositionTop,
+    CRToastPositionBottom
+};
+
 ///--------------------
 /// @name Option Keys
 ///--------------------
@@ -318,6 +327,12 @@ extern NSString *const kCRToastInteractionRespondersKey;
  */
 
 extern NSString *const kCRToastAutorotateKey;
+
+/**
+  The position of the notification. Expects type `CRToastPosition`, defaults to CRToastPositionTop.
+ */
+
+extern NSString *const kCRToastNotificationPositionKey;
 
 
 /**
