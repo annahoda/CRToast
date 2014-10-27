@@ -317,6 +317,12 @@ extern NSString *const kCRToastBackgroundColorKey;
 extern NSString *const kCRToastImageKey;
 
 /**
+ The preferred maximum length of each side of an image.
+ */
+
+extern NSString *const kCRToastImagePreferredSizeKey;
+
+/**
  An Array of Interaction Responders for the Notification. Expects type `NSArray` full of `CRToastInteractionResponders`
  */
 

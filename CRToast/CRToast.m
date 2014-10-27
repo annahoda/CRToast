@@ -160,6 +160,7 @@ typedef NS_ENUM(NSInteger, CRToastState) {
 @property (nonatomic, readonly) UIStatusBarStyle statusBarStyle;
 @property (nonatomic, readonly) UIColor *backgroundColor;
 @property (nonatomic, readonly) UIImage *image;
+@property (nonatomic, readonly) CGFloat imageMaxSide;
 
 @property (nonatomic, readonly) CGVector inGravityDirection;
 @property (nonatomic, readonly) CGVector outGravityDirection;
@@ -219,6 +220,7 @@ NSString *const kCRToastStatusBarStyleKey                   = @"kCRToastStatusBa
 
 NSString *const kCRToastBackgroundColorKey                  = @"kCRToastBackgroundColorKey";
 NSString *const kCRToastImageKey                            = @"kCRToastImageKey";
+NSString *const kCRToastImagePreferredSizeKey               = @"kCRToastImagePreferredSizeKey";
 
 NSString *const kCRToastInteractionRespondersKey            = @"kCRToastInteractionRespondersKey";
 
@@ -263,6 +265,7 @@ static UIStatusBarStyle             kCRStatusBarStyleDefault                = UI
 
 static UIColor  *                   kCRBackgroundColorDefault               = nil;
 static UIImage  *                   kCRImageDefault                         = nil;
+static CGFloat                      kCRImageMaxSizeDefault                  = 0;
 
 static NSArray  *                   kCRInteractionResponders                = nil;
 
@@ -508,6 +511,7 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
                                 kCRToastStatusBarStyleKey                   : NSStringFromClass([@(kCRStatusBarStyleDefault) class]),
                                 kCRToastBackgroundColorKey                  : NSStringFromClass([UIColor class]),
                                 kCRToastImageKey                            : NSStringFromClass([UIImage class]),
+                                kCRToastImagePreferredSizeKey               : NSStringFromClass([@(kCRImageMaxSizeDefault) class]),
                                 kCRToastInteractionRespondersKey            : NSStringFromClass([NSArray class]),
                                 kCRToastAutorotateKey                       : NSStringFromClass([@(kCRAutoRotateDefault) class])};
     }
@@ -566,7 +570,8 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
     
     if (defaultOptions[kCRToastBackgroundColorKey])                 kCRBackgroundColorDefault               = defaultOptions[kCRToastBackgroundColorKey];
     if (defaultOptions[kCRToastImageKey])                           kCRImageDefault                         = defaultOptions[kCRToastImageKey];
-    
+    if (defaultOptions[kCRToastImagePreferredSizeKey])              kCRImageMaxSizeDefault
+        = [defaultOptions[kCRToastImagePreferredSizeKey] floatValue];
     if (defaultOptions[kCRToastInteractionRespondersKey])           kCRInteractionResponders               = defaultOptions[kCRToastInteractionRespondersKey];
     if (defaultOptions[kCRToastAutorotateKey])                      kCRAutoRotateDefault                   = [defaultOptions[kCRToastAutorotateKey] boolValue];
 }
@@ -798,6 +803,11 @@ NSArray * CRToastGenericRecognizersMake(id target, CRToastInteractionResponder *
     return _options[kCRToastImageKey] ?: kCRImageDefault;
 }
 
+- (CGFloat) imageMaxSide {
+    CGFloat test = [_options[kCRToastImagePreferredSizeKey] floatValue] ?: kCRImageMaxSizeDefault;
+    return test;
+}
+
 - (NSInteger)maxNumberOfLines {
     return _options[kCRToastTextMaxNumberOfLinesKey] ?
     [_options[kCRToastTextMaxNumberOfLinesKey] integerValue] :
@@ -1016,6 +1026,7 @@ static CGFloat kCRCollisionTweak = 0.5;
 @property (nonatomic, strong) UIImageView *imageView;
 @property (nonatomic, strong) UILabel *label;
 @property (nonatomic, strong) UILabel *subtitleLabel;
+@property (nonatomic) CGFloat maxImageSide;
 @end
 
 static CGFloat const kCRStatusBarViewNoImageLeftContentInset = 10;
@@ -1042,6 +1053,7 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
         imageView.contentMode = UIViewContentModeCenter;
         [self addSubview:imageView];
         self.imageView = imageView;
+        self.imageView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin;
         
         UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
         label.userInteractionEnabled = NO;
@@ -1070,14 +1082,12 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
     CGFloat statusBarYOffset = self.toast.displayUnderStatusBar ? (CRGetStatusBarHeight()+CRStatusBarViewUnderStatusBarYOffsetAdjustment) : 0;
     contentFrame.size.height = CGRectGetHeight(contentFrame) - statusBarYOffset;
     
-    self.imageView.frame = CGRectMake(0,
+    CGFloat imageSide = imageSize.width == 0 ? 0 : self.maxImageSide == 0 ? CGRectGetHeight(contentFrame) : self.maxImageSide;
+    
+    self.imageView.frame = CGRectMake(imageSize.width == 0 ? CGRectGetWidth(contentFrame) : CGRectGetWidth(contentFrame) - imageSide,
                                       statusBarYOffset,
-                                      imageSize.width == 0 ?
-                                      0 :
-                                      CGRectGetHeight(contentFrame),
-                                      imageSize.height == 0 ?
-                                      0 :
-                                      CGRectGetHeight(contentFrame));
+                                      imageSide,
+                                      imageSide);
     CGFloat x = imageSize.width == 0 ? kCRStatusBarViewNoImageLeftContentInset : CGRectGetMaxX(_imageView.frame);
     CGFloat width = CGRectGetWidth(contentFrame)-x-kCRStatusBarViewNoImageRightContentInset;
     
@@ -1131,6 +1141,9 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
         _subtitleLabel.numberOfLines = toast.subtitleTextMaxNumberOfLines;
     }
     _imageView.image = toast.image;
+    _maxImageSide = toast.imageMaxSide;
+    if (_maxImageSide == DBL_MAX)
+        NSLog(@"dbl max");
     self.backgroundColor = toast.backgroundColor;
 }
 
@@ -1143,6 +1156,13 @@ static CGFloat const CRStatusBarViewUnderStatusBarYOffsetAdjustment = -5;
 @end
 
 @implementation CRToastContainerView
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+    }
+    return self;
+}
 
 @end
 
